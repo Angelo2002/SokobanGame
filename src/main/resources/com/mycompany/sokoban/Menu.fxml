@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ButtonBar?>
+<?import javafx.scene.layout.AnchorPane?>
+
+
+<AnchorPane prefHeight="700.0" prefWidth="1366.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.mycompany.sokoban.Menu">
+   <children>
+      <ButtonBar layoutX="464.0" layoutY="251.0" prefHeight="270.0" prefWidth="567.0">
+        <buttons>
+          <Button mnemonicParsing="false" onAction="#openSaveDeleteWindow" text="Borrar Partida" />
+            <Button mnemonicParsing="false" onAction="#openSaveSelector" text="Cargar Partida" />
+            <Button mnemonicParsing="false" onAction="#openNewGameCreator" text="Nueva Partida" />
+        </buttons>
+      </ButtonBar>
+   </children>
+</AnchorPane>
