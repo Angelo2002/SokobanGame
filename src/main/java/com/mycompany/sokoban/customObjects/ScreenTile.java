@@ -24,9 +24,14 @@ public class ScreenTile extends StackPane {
         updateImage();
     }
 
+
+    public void updateType(TileType type){
+        this.type = type;
+        updateImage();
+    }
+
     public void updateImage(){
-        super.getChildren().removeAll();
-        super.getChildren().add(new ImageView(type.getImage()));
+        super.getChildren().setAll(new ImageView(type.getImage()));
     }
 
     public Pair getCoordinates(){

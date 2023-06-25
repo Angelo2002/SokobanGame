@@ -1,6 +1,7 @@
 package com.mycompany.sokoban.customObjects;
 
 import javafx.scene.canvas.Canvas;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 
 import java.io.File;
@@ -20,21 +21,32 @@ public class Sprites {
     static final Image playerOnGoalImage;
 
     static {
-        File file = new File("./src/main/resources/com/mycompany/sokoban/images/wall.png");
-        if (file.exists()){
-            wallImage = new Image(file.toURI().toString());
-        }
-        else wallImage = colorCodedImage(255,0,0);
+
+        File file;
 
         file = new File("./src/main/resources/com/mycompany/sokoban/images/empty.png");
         if (file.exists()){
             emptyImage = new Image(file.toURI().toString());
         }
-        else emptyImage = colorCodedImage(0,0,0);
+        else emptyImage = colorCodedImage(102, 102, 153);
+
+        file = new File("./src/main/resources/com/mycompany/sokoban/images/wall.png");
+        if (file.exists()){
+            Canvas canvas = new Canvas(50, 50);
+            canvas.getGraphicsContext2D().drawImage(emptyImage,0,0);
+            canvas.getGraphicsContext2D().drawImage(new Image(file.toURI().toString(),50,50,false,false),0,0);
+            wallImage = canvas.snapshot(null,null);
+        }
+        else wallImage = colorCodedImage(255,0,0);
+
+
 
         file = new File("./src/main/resources/com/mycompany/sokoban/images/box.png");
         if (file.exists()){
-            boxImage = new Image(file.toURI().toString());
+            Canvas canvas = new Canvas(50, 50);
+            canvas.getGraphicsContext2D().drawImage(emptyImage,0,0);
+            canvas.getGraphicsContext2D().drawImage(new Image(file.toURI().toString(),50,50,false,false),0,0);
+            boxImage = canvas.snapshot(null,null);
         }
         else boxImage = colorCodedImage(150,75,0);
 
@@ -46,15 +58,27 @@ public class Sprites {
 
         file = new File("./src/main/resources/com/mycompany/sokoban/images/goal.png");
         if (file.exists()){
+
             goalImage = new Image(file.toURI().toString());
         }
         else goalImage = colorCodedImage(0,255,0);
 
         file = new File("./src/main/resources/com/mycompany/sokoban/images/boxOnGoal.png");
         if (file.exists()){
-            boxOnGoalImage = new Image(file.toURI().toString());
+            boxOnGoalImage = new Image(file.toURI().toString(),50,50,false,false);
         }
-        else boxOnGoalImage = colorCodedImage(255,255,0);
+        else {
+
+            Canvas canvas = new Canvas(50, 50);
+            canvas.getGraphicsContext2D().drawImage(goalImage,0,0);
+            canvas.getGraphicsContext2D().drawImage(boxImage,0,0);
+            //put a glowing effect on the image
+            ColorAdjust colorAdjust = new ColorAdjust();
+            colorAdjust.setBrightness(0.2);
+            canvas.getGraphicsContext2D().setEffect(colorAdjust);
+            boxOnGoalImage = canvas.snapshot(null,null);
+
+        }
 
         file = new File("./src/main/resources/com/mycompany/sokoban/images/playerOnGoal.png");
         if (file.exists()){

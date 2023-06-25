@@ -1,22 +1,22 @@
 package com.mycompany.sokoban.customObjects;
 
-import com.mycompany.model.Player;
-import javafx.util.Pair;
+import com.mycompany.model.Tile;
+import javafx.scene.layout.StackPane;
 
 import java.util.ArrayList;
 
 public class Level {
     static final int tileSize = 50;
-    ArrayList<ArrayList<ScreenTile>> level;
+    ArrayList<ArrayList<ScreenTile>> levelMatrix;
 
     ScreenTile player;
 
     public Level(){
-        level = new ArrayList<>();
+        levelMatrix = new ArrayList<>();
     }
 
     public Level(int size, int playerx, int playery){
-        level = new ArrayList<>();
+        levelMatrix = new ArrayList<>();
         for(int i=0;i<size;i++){
             ArrayList<ScreenTile> row = new ArrayList<>();
             for(int j=0;j<size;j++){
@@ -25,23 +25,32 @@ public class Level {
                 tile.setTranslateY(i*tileSize);
                 row.add(tile);
             }
-            level.add(row);
+            levelMatrix.add(row);
         }
 
-        this.player = new ScreenTile(playerx,playery,TileType.PLAYER);
-
+        //TODO arreglar este código horrendo
         //coordenadas (y,x) por como se manejan las matrices
-        this.level.get(playery).set(playerx,player);
+        ScreenTile player = this.levelMatrix.get(playery).get(playerx);
+        player.updateType(TileType.PLAYER);
+        this.player = player;
 
     }
 
+    public void addToStackPane(StackPane node){
+        for(ArrayList<ScreenTile> row: levelMatrix){
+            for(ScreenTile tile:row){
+                node.getChildren().add(tile);
+            }
+        }
+    }
+
     public void addRow(ArrayList<ScreenTile> row){
-        level.add(row);
+        levelMatrix.add(row);
     }
 
 
     public ScreenTile getTile(int x, int y){
-        return level.get(y).get(x);
+        return levelMatrix.get(y).get(x);
     }
 
     public ScreenTile getUpTile(ScreenTile tile) {
@@ -55,7 +64,7 @@ public class Level {
     public ScreenTile getDownTile(ScreenTile tile){
         if(tile==null)
             return null;
-        if ((int) tile.getCoordinates().getValue() == level.size() - 1)
+        if ((int) tile.getCoordinates().getValue() == levelMatrix.size() - 1)
             return null;
         return getTile((int) tile.getCoordinates().getKey(), (int) tile.getCoordinates().getValue() + 1);
     }
@@ -71,23 +80,53 @@ public class Level {
     public ScreenTile getRightTile(ScreenTile tile){
         if(tile==null)
             return null;
-        if ((int) tile.getCoordinates().getKey() == level.get(0).size() - 1)
+        if ((int) tile.getCoordinates().getKey() == levelMatrix.get(0).size() - 1)
             return null;
         return getTile((int) tile.getCoordinates().getKey() + 1, (int) tile.getCoordinates().getValue());
     }
 
     public void setPlayer(ScreenTile player){
-        if(this.player != null)
-            this.player.type = TileType.EMPTY;
+        //if(this.player != null)
+        //    this.player.type = TileType.EMPTY;
         this.player = player;
     }
 
     public void switchTiles(ScreenTile tile1, ScreenTile tile2){
+        System.out.println("switching tiles"+tile1.type+" "+tile2.type);
         TileType temp = tile1.type;
-        tile1.type = tile2.type;
-        tile2.type = temp;
+        boolean tile1IsGoal = tile1.type == TileType.GOAL || tile1.type == TileType.BOXONGOAL || tile1.type == TileType.PLAYERONGOAL;
+        tile1.type = tile1IsGoal? getGoalVersion(tile2.type): getNonGoalVersion(tile2.type);
+        boolean tile2IsGoal = tile2.type == TileType.GOAL || tile2.type == TileType.BOXONGOAL || tile2.type == TileType.PLAYERONGOAL;
+        tile2.type = tile2IsGoal ? getGoalVersion(temp): getNonGoalVersion(temp);
+
         tile1.updateImage();
         tile2.updateImage();
+
+        System.out.println("switched tiles"+tile1.type+" "+tile2.type);
+    }
+
+    public TileType getGoalVersion(TileType type){
+        if(type == TileType.BOX)
+            return TileType.BOXONGOAL;
+        else if(type == TileType.PLAYER)
+            return TileType.PLAYERONGOAL;
+        else if(type == TileType.EMPTY)
+            return TileType.GOAL;
+        else{
+            return type;
+        }
+    }
+
+    public TileType getNonGoalVersion(TileType type){
+        if(type == TileType.BOXONGOAL)
+            return TileType.BOX;
+        else if(type == TileType.PLAYERONGOAL)
+            return TileType.PLAYER;
+        else if(type == TileType.GOAL)
+            return TileType.EMPTY;
+        else{
+            return type;
+        }
     }
 
     public void movePlayerLeft(){
@@ -96,18 +135,7 @@ public class Level {
             return;
         }
         ScreenTile leftTile = getLeftTile(player);
-        if(leftTile == null)
-            return;
-        if(leftTile.type == TileType.BOX || leftTile.type == TileType.BOXONGOAL){
-            ScreenTile leftLeftTile = getLeftTile(leftTile);
-            if(leftLeftTile == null)
-                return;
-            if(leftLeftTile.type == TileType.WALL || leftLeftTile.type == TileType.BOX || leftLeftTile.type == TileType.BOXONGOAL)
-                return;
-            switchTiles(leftTile, leftLeftTile);
-        }
-        switchTiles(player, leftTile);
-        setPlayer(leftTile);
+        movePlayerTo(leftTile, getLeftTile(leftTile));
     }
 
     public void movePlayerRight(){
@@ -116,18 +144,17 @@ public class Level {
             return;
         }
         ScreenTile rightTile = getRightTile(player);
-        if(rightTile == null)
+        movePlayerTo(rightTile, getRightTile(rightTile));
+    }
+
+    public void removePlayerFromTile(){
+        if(player == null)
             return;
-        if(rightTile.type == TileType.BOX || rightTile.type == TileType.BOXONGOAL){
-            ScreenTile rightRightTile = getRightTile(rightTile);
-            if(rightRightTile == null)
-                return;
-            if(rightRightTile.type == TileType.WALL || rightRightTile.type == TileType.BOX || rightRightTile.type == TileType.BOXONGOAL)
-                return;
-            switchTiles(rightTile, rightRightTile);
+        else if (player.type == TileType.PLAYER)
+            player.updateType(TileType.EMPTY);
+        else if (player.type == TileType.PLAYERONGOAL){
+            player.updateType(TileType.GOAL);
         }
-        switchTiles(player, rightTile);
-        setPlayer(rightTile);
     }
 
     public void movePlayerUp(){
@@ -136,18 +163,7 @@ public class Level {
             return;
         }
         ScreenTile upTile = getUpTile(player);
-        if(upTile == null)
-            return;
-        if(upTile.type == TileType.BOX || upTile.type == TileType.BOXONGOAL){
-            ScreenTile upUpTile = getUpTile(upTile);
-            if(upUpTile == null)
-                return;
-            if(upUpTile.type == TileType.WALL || upUpTile.type == TileType.BOX || upUpTile.type == TileType.BOXONGOAL)
-                return;
-            switchTiles(upTile, upUpTile);
-        }
-        switchTiles(player, upTile);
-        setPlayer(upTile);
+        movePlayerTo(upTile, getUpTile(upTile));
     }
 
     public void movePlayerDown(){
@@ -156,22 +172,25 @@ public class Level {
             return;
         }
         ScreenTile downTile = getDownTile(player);
-        if(downTile == null)
+        movePlayerTo(downTile, getDownTile(downTile));
+    }
+
+    private void movePlayerTo(ScreenTile sideTile, ScreenTile sideSideTile) {
+        if (sideTile == null || sideTile.type == TileType.WALL)
             return;
-        if(downTile.type == TileType.BOX || downTile.type == TileType.BOXONGOAL){
-            ScreenTile downDownTile = getDownTile(downTile);
-            if(downDownTile == null)
+        if (sideTile.type == TileType.BOX || sideTile.type == TileType.BOXONGOAL) {
+            if (sideSideTile == null)
                 return;
-            if(downDownTile.type == TileType.WALL || downDownTile.type == TileType.BOX || downDownTile.type == TileType.BOXONGOAL)
+            if (sideSideTile.type == TileType.WALL || sideSideTile.type == TileType.BOX || sideSideTile.type == TileType.BOXONGOAL)
                 return;
-            switchTiles(downTile, downDownTile);
+            switchTiles(sideTile, sideSideTile);
         }
-        switchTiles(player, downTile);
-        setPlayer(downTile);
+        switchTiles(player, sideTile);
+        setPlayer(sideTile);
     }
 
     public boolean isLevelComplete(){
-        for(ArrayList<ScreenTile> row : level){
+        for(ArrayList<ScreenTile> row : levelMatrix){
             for(ScreenTile tile : row){
                 if(tile.type == TileType.BOX)
                     return false;
@@ -186,9 +205,9 @@ public class Level {
     *  @return true si el jugador está en el array
      */
     boolean playerIsOnArray(){
-        for(ArrayList<ScreenTile> row : level){
+        for(ArrayList<ScreenTile> row : levelMatrix){
             for(ScreenTile tile : row){
-                if(tile.type == TileType.PLAYER)
+                if(tile == player)
                     return true;
             }
         }
