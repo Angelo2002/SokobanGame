@@ -7,7 +7,7 @@
 <AnchorPane fx:id="apane_levelwindow" prefHeight="700.0" prefWidth="1366.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.mycompany.sokoban.LevelWindow">
    <children>
       <Button focusTraversable="false" layoutX="70.0" layoutY="609.0" mnemonicParsing="false" onAction="#backToMenu" text="Volver al Menú" />
-      <StackPane fx:id="spane_game" focusTraversable="true" layoutX="357.0" layoutY="64.0" prefHeight="510.0" prefWidth="734.0" />
+      <StackPane fx:id="spane_game" focusTraversable="true" layoutX="202.0" layoutY="14.0" prefHeight="510.0" prefWidth="734.0" />
 
    </children>
 </AnchorPane>

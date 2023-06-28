@@ -1,6 +1,7 @@
 package com.mycompany.sokoban;
 
 import com.mycompany.sokoban.MCSTGen.LevelNode;
+import com.mycompany.sokoban.MCSTGen.MCSTLevelGenerator;
 import com.mycompany.sokoban.customObjects.Level;
 import com.mycompany.sokoban.customObjects.TileType;
 import javafx.event.ActionEvent;
@@ -36,34 +37,48 @@ public class Menu {
             Parent root = loader.load();
             LevelWindow controller = loader.getController();
 
-            LevelNode testNode = new LevelNode(new Level(10,4,4),-1);
-            testNode.ActionDeleteWalls(5);
-            testNode.ActionDeleteWalls(5);
-            testNode.ActionDeleteWalls(5);
-            testNode.ActionDeleteWalls(10);
-            testNode.ActionDeleteWalls(10);
-            testNode.ActionPlaceBoxes(4);
-
-            testNode.ActionFreezeLevel();
-
-            testNode.ActionMovePlayer(100);
-            testNode.mergeWithFrozenLevel();
-
-
-            //testNode.turnLevelBoxesIntoGoals();
-            //testNode.turnUnmovedGoalsIntoWalls();
-
-            Level testLevel = testNode.getLevel();
-
-            Level frozenLevel = testNode.getFrozenLevel();
-            System.out.printf("FrozenSize" + frozenLevel.getLevelMatrix().size() + "FrozenSize" + frozenLevel.getLevelMatrix().get(0).size() + "\n");
-            controller.loadLevel(testLevel);
-
+            Level generatedLevel = test03();
+            System.out.println("Level score "+generatedLevel.getLevelScore());
+            controller.loadLevel(generatedLevel);
             App.setRoot(root);
         }catch (Exception e){
             System.out.println(e.getMessage());
         }
 
+    }
+
+    private static Level test03() {
+        LevelNode startNode = new LevelNode(new Level(10,4,4),-1);
+
+        MCSTLevelGenerator generator = new MCSTLevelGenerator(startNode,10,15,0);
+        generator.startGeneration();
+        return generator.getLevelWithHighestScore();
+
+        //testNode.turnLevelBoxesIntoGoals();
+        //testNode.turnUnmovedGoalsIntoWalls();
+
+
+    }
+
+    private static LevelNode test02() {
+        LevelNode testNode = new LevelNode(new Level(10,4,4),-1);
+        testNode.ActionDeleteWalls(5);
+        testNode.ActionDeleteWalls(10);
+        testNode.ActionDeleteWalls(10);
+        testNode.ActionDeleteWalls(10);
+        testNode.ActionDeleteWalls(10);
+        testNode.ActionPlaceBoxes(6);
+
+        testNode.ActionFreezeLevel();
+
+        testNode.ActionMovePlayer(100);
+        testNode.mergeWithFrozenLevel();
+
+
+        //testNode.turnLevelBoxesIntoGoals();
+        //testNode.turnUnmovedGoalsIntoWalls();
+
+        return testNode;
     }
 
     private static Level test001() {

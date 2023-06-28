@@ -1,6 +1,6 @@
 package com.mycompany.sokoban.customObjects;
 
-import com.mycompany.model.Tile;
+import com.mycompany.sokoban.MCSTGen.EvaluationParamethers;
 import javafx.scene.layout.StackPane;
 
 import java.util.ArrayList;
@@ -11,9 +11,11 @@ public class Level {
 
     ScreenTile player;
 
+    private float levelScore;
     public Level(){
         levelMatrix = new ArrayList<>();
         this.player = null;
+        levelScore = 0;
     }
 
     public Level(int size, int playerx, int playery){
@@ -37,6 +39,7 @@ public class Level {
         player.updateType(TileType.PLAYER);
         this.player = player;
 
+        levelScore = 0;
     }
 
     public ArrayList<ArrayList<ScreenTile>> getLevelMatrix(){
@@ -71,7 +74,7 @@ public class Level {
         return emptyTiles;
     }
 
-    public ArrayList<ScreenTile> getWallsAdyacentToEmpty(){
+    public ArrayList<ScreenTile> getWallsAdjacentToEmpty(){
         ArrayList<ScreenTile> walls = new ArrayList<>();
         for(ArrayList<ScreenTile> row: levelMatrix){
             for(ScreenTile tile:row){
@@ -157,7 +160,8 @@ public class Level {
     }
 
     public void switchTiles(ScreenTile tile1, ScreenTile tile2){
-        //System.out.println("switching tiles"+tile1.type+" "+tile2.type);
+        System.out.println("switching tiles"+tile1.type+" "+tile2.type);
+        System.out.printf("tile1: %d, tile2: %d\n", tile1.getBoxPathid(), tile2.getBoxPathid());
         TileType tempType = tile1.type;
         int tempID = tile1.getBoxPathid();
         boolean tile1IsGoal = tile1.type == TileType.GOAL || tile1.type == TileType.BOXONGOAL || tile1.type == TileType.PLAYERONGOAL;
@@ -174,7 +178,9 @@ public class Level {
         tile1.setHasBeenMoved(true);
         tile2.setHasBeenMoved(true);
 
-        //System.out.println("switched tiles"+tile1.type+" "+tile2.type);
+        System.out.println("switched tiles"+tile1.type+" "+tile2.type);
+        System.out.printf("tile1: %d, tile2: %d\n", tile1.getBoxPathid(), tile2.getBoxPathid());
+        System.out.printf("--------------------\n");
     }
 
     public TileType getGoalVersion(TileType type){
@@ -240,7 +246,7 @@ public class Level {
 
     public void movePlayerDown(){
         if (player == null) {
-            System.out.printf("player is null");
+            System.out.println("player is null");
             return;
         }
         ScreenTile downTile = getDownTile(player);
@@ -314,18 +320,88 @@ public class Level {
         for(ArrayList<ScreenTile> row : levelMatrix){
             for(ScreenTile tile : row){
                 if(tile.type == TileType.EMPTY){
-                    if(getUpTile(tile).type == TileType.WALL)
+                    ScreenTile upTile = getUpTile(tile);
+                    ScreenTile downTile = getDownTile(tile);
+                    ScreenTile leftTile = getLeftTile(tile);
+                    ScreenTile rightTile = getRightTile(tile);
+                    if(upTile != null && upTile.type == TileType.WALL)
                         terrain++;
-                    if(getDownTile(tile).type == TileType.WALL)
+                    if(downTile != null && downTile.type == TileType.WALL)
                         terrain++;
-                    if(getLeftTile(tile).type == TileType.WALL)
+                    if(leftTile != null && leftTile.type == TileType.WALL)
                         terrain++;
-                    if(getRightTile(tile).type == TileType.WALL)
+                    if(rightTile != null && rightTile.type == TileType.WALL)
                         terrain++;
+
+
                 }
             }
         }
         return terrain;
+    }
+
+    //TODO review function
+    public float EvaluateCongestion(){
+        ArrayList<ScreenTile> boxes = getBoxes();
+        ArrayList<ScreenTile> goals = getGoals();
+        float congestion = 0;
+        for(ScreenTile box : boxes){
+           ScreenTile goal = getCorrespondingGoal(box, goals);
+           if(goal == null) {
+               System.out.println("goal is null in EvaluateCongestion X" + box.getCoordinates().getKey() + "Y" + box.getCoordinates().getValue());
+               continue;
+           }
+           int[] boxCoordinates = {(int)box.getCoordinates().getKey(),(int) box.getCoordinates().getValue()};
+           int[] goalCoordinates = {(int)goal.getCoordinates().getKey(),(int) goal.getCoordinates().getValue()};
+           //make a square using a top left corner and a bottom right corner
+          int topLeftX = Math.min(boxCoordinates[0], goalCoordinates[0]);
+            int topLeftY = Math.min(boxCoordinates[1], goalCoordinates[1]);
+            int bottomRightX = Math.max(boxCoordinates[0], goalCoordinates[0]);
+            int bottomRightY = Math.max(boxCoordinates[1], goalCoordinates[1]);
+            for(int i = topLeftX; i <= bottomRightX; i++){
+                for(int j = topLeftY; j <= bottomRightY; j++){
+                    if(levelMatrix.get(j).get(i).type == TileType.BOX || levelMatrix.get(j).get(i).type == TileType.BOXONGOAL)
+                        congestion+=EvaluationParamethers.CONGESTION_BOX_WEIGHT;
+                    else if (levelMatrix.get(j).get(i).type == TileType.GOAL || levelMatrix.get(j).get(i).type == TileType.PLAYERONGOAL) {
+                        congestion += EvaluationParamethers.CONGESTION_GOAL_WEIGHT;
+                    }
+                    else if (levelMatrix.get(j).get(i).type == TileType.WALL){
+                        congestion+=EvaluationParamethers.CONGESTION_WALL_WEIGHT;
+                    }
+                }
+            }
+
+        }
+        return congestion;
+    }
+
+    public void updateScore(){
+        levelScore = (float) (Math.sqrt( EvaluateTerrain() * EvaluateCongestion())/EvaluationParamethers.NORMALIZATION_FACTOR);
+    }
+
+    public float getLevelScore() {
+        return levelScore;
+    }
+
+    public ScreenTile getCorrespondingGoal(ScreenTile box, ArrayList<ScreenTile> goals){
+        //gets the goal that corresponds to the box with the boxpathid
+        for(ScreenTile tile : goals){
+            System.out.println("--------------------");
+            if(tile.getBoxPathid() == box.getBoxPathid())
+                return tile;
+        }
+        return null;
+    }
+
+    private ArrayList<ScreenTile> getGoals() {
+        ArrayList<ScreenTile> goals = new ArrayList<>();
+        for(ArrayList<ScreenTile> row : levelMatrix){
+            for(ScreenTile tile : row){
+                if(tile.type == TileType.GOAL || tile.type == TileType.BOXONGOAL)
+                    goals.add(tile);
+            }
+        }
+        return goals;
     }
 
     public ScreenTile getPlayer() {

@@ -5,6 +5,8 @@ import com.mycompany.sokoban.customObjects.ScreenTile;
 import com.mycompany.sokoban.customObjects.TileType;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Random;
 
 public class LevelNode {
@@ -14,7 +16,7 @@ public class LevelNode {
     private Level finalLevel;
     private LevelNode parent;
     private int visits;
-    private int score;
+    private float totalScore;
 
     private int depth;
 
@@ -29,31 +31,31 @@ public class LevelNode {
         this.level = level;
         this.parent = parent;
         this.visits = 0;
-        this.score = 0;
+        this.totalScore = 0;
         this.depth = depth;
         frozen = false;
         isTerminal = false;
+        children = new ArrayList<>();
     }
 
     public LevelNode(Level level, int depth){
         this.level = level;
         this.parent = null;
         this.visits = 0;
-        this.score = 0;
+        this.totalScore = 0;
         this.depth = depth;
         frozen = false;
         isTerminal = false;
+        children = new ArrayList<>();
     }
 
 
     public void ActionDeleteWalls(int quantity){
-        ArrayList<ScreenTile> wallsToBeDeleted = this.level.getWallsAdyacentToEmpty();
+        ArrayList<ScreenTile> wallsToBeDeleted = this.level.getWallsAdjacentToEmpty();
         int wallsDeleted = 0;
         for(int i = 0; i < wallsToBeDeleted.size() && wallsDeleted<quantity; i++){
-            System.out.println("Walls to be deleted: " + wallsToBeDeleted.size() + " Walls deleted: " + wallsDeleted + " Quantity: " + quantity + " i: " + i + "");
             int randomWall = (int) (Math.random() * wallsToBeDeleted.size());
             ScreenTile tile = wallsToBeDeleted.get(randomWall);
-            System.out.println("GOT A WALL");
             tile.updateType(TileType.EMPTY);
             wallsToBeDeleted.remove(randomWall);
             wallsDeleted++;
@@ -63,8 +65,8 @@ public class LevelNode {
     public void TestActionDeleteWalls(int quantity){
         ArrayList<ArrayList<ScreenTile>> map = this.level.getLevelMatrix();
         int wallRemovedCount = 0;
-        for(int i = 0; i < map.size(); i++){
-            for(int j = 0; j < map.get(i).size() && wallRemovedCount<quantity; j++){
+        for(int i = 1; i < map.size() - 1; i++){
+            for(int j = 1; j < map.get(i).size() - 1 && wallRemovedCount<quantity; j++){
                 ScreenTile tile = map.get(i).get(j); //TODO: make random
                 if(tile.getTileType() == TileType.WALL){
                     ScreenTile temp;
@@ -175,16 +177,16 @@ public class LevelNode {
             for(int j = 0; j < map.get(i).size(); j++){
                 ScreenTile tile = map.get(i).get(j);
                 ScreenTile frozenTile = frozenMap.get(i).get(j);
-                if(tile.getTileType() == TileType.BOX && frozenTile.getTileType() == TileType.GOAL){
+                if(tile.getTileType() == TileType.GOAL && frozenTile.getTileType() == TileType.BOX){
                     tile.updateType(TileType.BOXONGOAL);
                 } else if (tile.getTileType() == TileType.EMPTY || tile.getTileType()== TileType.PLAYER){
                     tile.updateType(frozenTile.getTileType());
+                    tile.setBoxPathid(frozenTile.getBoxPathid());
                 }
             }
         }
         int playerX = (int)frozenLevel.getPlayer().getCoordinates().getKey();
         int playerY = (int)frozenLevel.getPlayer().getCoordinates().getValue();
-        System.out.printf("Player X: %d, Player Y: %d\n", playerX, playerY);
         ScreenTile playerTile = map.get(playerY).get(playerX);
         if(playerTile.getTileType() == TileType.GOAL){
             playerTile.updateType(TileType.PLAYERONGOAL);
@@ -196,34 +198,80 @@ public class LevelNode {
         //TODO: might be able to remove frozen level
     }
 
-    public void rollout(){
-        while(!frozen){
+    /*
+    Performs a rollout from the current node
+     */
+    public Level rollout(){
+        LevelNode rolloutNode = this.getClone();
+        while(!rolloutNode.frozen){
             Random rand = new Random();
             int action = rand.nextInt(3);
             switch (action){
                 case 0:
-                    TestActionDeleteWalls(1);
+                    rolloutNode.ActionDeleteWalls(1);
                     break;
                 case 1:
-                    ActionPlaceBoxes(1);
+                    rolloutNode.ActionPlaceBoxes(1);
                     break;
                 case 2:
-                    ActionFreezeLevel();
+                    rolloutNode.ActionFreezeLevel();
                     break;
             }
         }
-        while(!isTerminal){
+        while(!rolloutNode.isTerminal){
             Random rand = new Random();
             int action = rand.nextInt(2);
             switch (action){
                 case 0:
-                    ActionMovePlayer(1);
+                    rolloutNode.ActionMovePlayer(1);
                     break;
                 case 1:
-                    ActionEvaluateLevel();
+                    rolloutNode.ActionEvaluateLevel();
                     break;
             }
         }
+        return rolloutNode.getLevel();
+    }
+
+    public void expand(){
+        ArrayList<LevelNode> children = new ArrayList<>();
+        if(!frozen){
+            for(int i = 0; i < 3; i++){
+                LevelNode child = this.getClone();
+                child.visits = 0;
+                child.totalScore = 0;
+                child.parent = this;
+                switch (i){
+                    case 0:
+                        child.ActionDeleteWalls(1);
+                        break;
+                    case 1:
+                        child.ActionPlaceBoxes(1);
+                        break;
+                    case 2:
+                        child.ActionFreezeLevel();
+                        break;
+                }
+                children.add(child);
+            }
+        }else if(!isTerminal){
+            for(int i = 0; i < 2; i++){
+                LevelNode child = this.getClone();
+                child.parent = this;
+                switch (i){
+                    case 0:
+                        child.ActionMovePlayer(1);
+                        break;
+                    case 1:
+                        child.ActionEvaluateLevel();
+                        break;
+                }
+
+                children.add(child);
+            }
+        }
+
+        this.children = children;
     }
 
     //TODO check if this is correct
@@ -231,11 +279,16 @@ public class LevelNode {
         LevelNode clone = new LevelNode(this.level.getClone(), this.depth);
         clone.parent = this.parent;
         clone.visits = this.visits;
-        clone.score = this.score;
+        clone.totalScore = this.totalScore;
         clone.frozen = this.frozen;
         clone.isTerminal = this.isTerminal;
-        clone.frozenLevel = this.frozenLevel.getClone();
+        clone.frozenLevel = this.frozenLevel==null ? null : this.frozenLevel.getClone();
         return clone;
+    }
+
+
+    public void addTotalScore(float score){
+        this.totalScore += score;
     }
 
     boolean isLeaf(){
@@ -255,8 +308,8 @@ public class LevelNode {
         return this.visits;
     }
 
-    public int getScore(){
-        return this.score;
+    public float getTotalScore(){
+        return this.totalScore;
     }
 
     public int getDepth(){
@@ -278,5 +331,17 @@ public class LevelNode {
 
     public Level getFrozenLevel() {
         return frozenLevel;
+    }
+
+    public List<LevelNode> getChildren() {
+        return children;
+    }
+
+    public void addVisit() {
+        this.visits++;
+    }
+
+    public boolean getTerminalState() {
+        return isTerminal;
     }
 }

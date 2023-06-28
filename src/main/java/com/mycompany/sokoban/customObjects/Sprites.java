@@ -11,7 +11,7 @@ import static javafx.scene.paint.Color.rgb;
 
 
 
-public class Sprites {
+public abstract class Sprites {
     static final Image wallImage;
     static final Image emptyImage;
     static final Image boxImage;
@@ -65,7 +65,12 @@ public class Sprites {
 
         file = new File("./src/main/resources/com/mycompany/sokoban/images/boxOnGoal.png");
         if (file.exists()){
-            boxOnGoalImage = new Image(file.toURI().toString(),50,50,false,false);
+            Canvas canvas = new Canvas(50, 50);
+            canvas.getGraphicsContext2D().drawImage(goalImage,0,0);
+            canvas.getGraphicsContext2D().drawImage(new Image(file.toURI().toString()),0,0,50,50);
+            ColorAdjust colorAdjust = new ColorAdjust();
+            colorAdjust.setBrightness(0.2);
+            boxOnGoalImage = canvas.snapshot(null,null);
         }
         else {
 
