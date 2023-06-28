@@ -7,10 +7,10 @@ public interface EvaluationParamethers {
 
     public static final int MAX_BOXES = 15;
 
-    public static final float CONGESTION_BOX_WEIGHT = 4f;
+    public static final float CONGESTION_BOX_WEIGHT = 5f;
 
 
-    public static final float CONGESTION_GOAL_WEIGHT = 4f;
+    public static final float CONGESTION_GOAL_WEIGHT = 3f;
 
     public static final float CONGESTION_WALL_WEIGHT = 1f;
 

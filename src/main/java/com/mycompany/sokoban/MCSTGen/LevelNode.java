@@ -205,6 +205,14 @@ public class LevelNode {
         LevelNode rolloutNode = this.getClone();
         while(!rolloutNode.frozen){
             Random rand = new Random();
+            if(rolloutNode.getLevel().getEmptyTiles().size()<5){
+                rolloutNode.ActionDeleteWalls(1);
+                continue;
+            } else if (rolloutNode.getLevel().getBoxes().size()<3) {
+                rolloutNode.ActionPlaceBoxes(1);
+                continue;
+            }
+
             int action = rand.nextInt(3);
             switch (action){
                 case 0:
@@ -218,12 +226,13 @@ public class LevelNode {
                     break;
             }
         }
+        rolloutNode.ActionMovePlayer(15);
         while(!rolloutNode.isTerminal){
             Random rand = new Random();
             int action = rand.nextInt(2);
             switch (action){
                 case 0:
-                    rolloutNode.ActionMovePlayer(1);
+                    rolloutNode.ActionMovePlayer(10);
                     break;
                 case 1:
                     rolloutNode.ActionEvaluateLevel();
@@ -236,11 +245,20 @@ public class LevelNode {
     public void expand(){
         ArrayList<LevelNode> children = new ArrayList<>();
         if(!frozen){
-            for(int i = 0; i < 3; i++){
+            int actionLimiter;
+            if(this.level.getEmptyTiles().size()<3){
+                actionLimiter = 1;
+            }else if(this.level.getBoxes().size()<2){
+                actionLimiter = 2;
+            }else{
+                actionLimiter = 3;
+            }
+            for(int i = 0; i < actionLimiter; i++){
                 LevelNode child = this.getClone();
                 child.visits = 0;
                 child.totalScore = 0;
                 child.parent = this;
+                child.depth = this.depth + 1;
                 switch (i){
                     case 0:
                         child.ActionDeleteWalls(1);
@@ -255,7 +273,13 @@ public class LevelNode {
                 children.add(child);
             }
         }else if(!isTerminal){
-            for(int i = 0; i < 2; i++){
+            LevelNode child = this.getClone();
+            child.visits = 0;
+            child.totalScore = 0;
+            child.parent = this;
+            child.depth = this.depth + 1;
+            child.ActionMovePlayer(2);
+            /*for(int i = 0; i < 2; i++){
                 LevelNode child = this.getClone();
                 child.parent = this;
                 switch (i){
@@ -266,13 +290,14 @@ public class LevelNode {
                         child.ActionEvaluateLevel();
                         break;
                 }
-
+            */
                 children.add(child);
             }
+        this.children = children;
         }
 
-        this.children = children;
-    }
+
+
 
     //TODO check if this is correct
     public LevelNode getClone(){

@@ -9,6 +9,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 
+import java.util.ArrayList;
+
 //todo: Replace system.out.println with logger and alert to user
 
 public class Menu {
@@ -48,11 +50,18 @@ public class Menu {
     }
 
     private static Level test03() {
-        LevelNode startNode = new LevelNode(new Level(10,4,4),-1);
+        LevelNode startNode = new LevelNode(new Level(6,2,2),0);
 
-        MCSTLevelGenerator generator = new MCSTLevelGenerator(startNode,10,15,0);
+        MCSTLevelGenerator generator = new MCSTLevelGenerator(startNode,10,0,30000);
         generator.startGeneration();
+        ArrayList<Level> levels = generator.getLevels();
+        levels.forEach(level -> System.out.println(level.getLevelScore()));
+        generator.printImmediateChildrenVisits();
+        System.out.println("------------------");
+        generator.printVisits();
         return generator.getLevelWithHighestScore();
+
+        //return generator.getLevelWithHighestScore();
 
         //testNode.turnLevelBoxesIntoGoals();
         //testNode.turnUnmovedGoalsIntoWalls();

@@ -31,21 +31,24 @@ public class MCSTLevelGenerator {
 
     public void startGeneration(){
         boolean noTime = maxTime == 0;
+        boolean noNodes = maxNodes == 0;
         generatedLevels = new ArrayList<>();
         long startTime = System.currentTimeMillis();
         long elapsedTime = 0L;
         nodesGenerated = 0;
-        float minimumRequiredScore = 0.10f; //todo: make this either a parameter or a constant
-        while((elapsedTime < maxTime || noTime) && nodesGenerated < maxNodes){
+        float minimumRequiredScore = 0.04f; //todo: make this either a parameter or a constant
+        while((elapsedTime < maxTime || noTime) && (nodesGenerated < maxNodes || noNodes)){
             LevelNode node = selectNode(root); //selecciona una hoja
             if(node.getVisits()==0){
                 minimumRequiredScore = fullRollout(minimumRequiredScore, node);
-            }else{
+            }else if (node.getVisits()==1){
                 node.expand();
                 nodesGenerated += node.getChildren().size();
                 if (node.getChildren().size() != 0) {
                     minimumRequiredScore = fullRollout(minimumRequiredScore, node.getChildren().get(0));
                 }
+            }else{
+                System.out.printf("Node visits: %d\n",node.getVisits());
             }
 
             if(node.getTerminalState()){
@@ -55,17 +58,18 @@ public class MCSTLevelGenerator {
 
 
             elapsedTime = System.currentTimeMillis() - startTime;
+
             System.out.printf("Nodes generated: %d, Elapsed time: %d\n",nodesGenerated,elapsedTime);
         }
     }
 
     private float fullRollout(float minimumRequiredScore, LevelNode node) {
-        node.rollout();
-        node.getLevel().updateScore();
-        float score = node.getLevel().getLevelScore();
+        Level rollout = node.rollout();
+        rollout.updateScore();
+        float score = rollout.getLevelScore();
         System.out.println("Score: " + score);
         if(score > minimumRequiredScore){
-            generatedLevels.add(node.getLevel());
+            generatedLevels.add(rollout);
             minimumRequiredScore = score;
         }
         backPropagate(node,score);
@@ -76,13 +80,13 @@ public class MCSTLevelGenerator {
         LevelNode node = newNode;
         while(node != null){
             node.addTotalScore(score);
+            node.addVisit();
             node = node.getParent();
         }
     }
 
     private LevelNode selectNode(LevelNode node) {
-        node.addVisit();
-        if(node.getChildren().size() == 0){
+        if(node.isLeaf()){
             return node;
         }
         LevelNode selectedNode = node.getChildren().get(0);
@@ -116,5 +120,54 @@ public class MCSTLevelGenerator {
     }
 
 
+    public ArrayList<Level> getLevels() {
+        return generatedLevels;
+    }
+
+    public void printVisits(){
+        printVisits(root);
+    }
+
+    public void printVisits(LevelNode node){
+        if(node.getDepth()>20){
+            return;
+        }
+
+        for(int i = 0; i < node.getDepth(); i++){
+            System.out.print("-");
+        }
+        System.out.println("Visits " + node.getVisits() + ".Depth " + node.getDepth());
+        for(LevelNode child : node.getChildren()){
+            printVisits(child);
+        }
+    }
+
+    public void printImmediateChildrenVisits(){
+        printImmediateChildrenVisits(root);
+    }
+
+    private void printImmediateChildrenVisits(LevelNode root) {
+        for(LevelNode child : root.getChildren()){
+            System.out.println("Visits " + child.getVisits() + ".Depth " + child.getDepth());
+        }
+    }
+
+    public void deleteNodesWithFewVisits(int minVisits){
+        deleteNodesWithFewVisits(root,minVisits);
+    }
+
+    private void deleteNodesWithFewVisits(LevelNode root, int minVisits) {
+        ArrayList<LevelNode> nodesToDelete = new ArrayList<>();
+        for(LevelNode child : root.getChildren()){
+            if(child.getVisits() < minVisits){
+                nodesToDelete.add(child);
+            }
+        }
+        nodesGenerated -= nodesToDelete.size();
+        root.getChildren().removeAll(nodesToDelete);
+        for(LevelNode child : root.getChildren()){
+            deleteNodesWithFewVisits(child,minVisits);
+        }
+    }
 
 }
